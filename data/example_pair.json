@@ -1,0 +1,7 @@
+{
+  "question": "For a patient with chronic kidney disease who develops hyperkalemia while taking a RAAS inhibitor, should the RAAS inhibitor be stopped immediately, and what management is preferred?",
+  "complete_context": "RAAS inhibitors provide kidney and cardiovascular protection in chronic kidney disease. Hyperkalemia can occur during treatment. Guidelines recommend first treating hyperkalemia with dietary measures, correction of reversible causes, diuretics when appropriate, and potassium binders; RAAS inhibitor dose reduction or discontinuation is generally reserved for hyperkalemia that remains uncontrolled despite these measures.",
+  "insufficient_context": "RAAS inhibitors provide kidney and cardiovascular protection in chronic kidney disease. Hyperkalemia can occur during treatment. Dietary measures, correction of reversible causes, diuretics, and potassium binders are available treatments for hyperkalemia.",
+  "removed_critical_fact": "Whether hyperkalemia should be managed before reducing or stopping the RAAS inhibitor, and when discontinuation is warranted."
+}
+

@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="信息充分性信号的层间形成、衰减与最终决策错位：研究想法汇报" />
+  <title>模型知道信息不够，却仍然回答？｜研究 Idea 汇报</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #64707d;
+      --paper: #f7f5ef;
+      --card: #fffdf8;
+      --navy: #10243e;
+      --blue: #315c9b;
+      --cyan: #3d93a3;
+      --mint: #b8e0d2;
+      --green: #2f7d68;
+      --amber: #eead52;
+      --orange: #d96d3b;
+      --red: #b94b4b;
+      --line: #d9d8d1;
+      --shadow: 0 16px 44px rgba(16, 36, 62, .10);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(16,36,62,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,36,62,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+
+    .progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      height: 4px;
+      width: 0;
+      z-index: 100;
+      background: linear-gradient(90deg, var(--orange), var(--amber), var(--cyan));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 12px max(24px, calc((100vw - 1180px) / 2));
+      color: #fff;
+      background: rgba(16, 36, 62, .94);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 6px 26px rgba(16,36,62,.16);
+    }
+
+    .brand { font-weight: 760; letter-spacing: .03em; white-space: nowrap; }
+    .brand span { color: var(--amber); }
+    .topbar nav { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .topbar nav a {
+      padding: 7px 10px;
+      color: rgba(255,255,255,.72);
+      text-decoration: none;
+      font-size: 13px;
+      white-space: nowrap;
+      border-radius: 8px;
+    }
+    .topbar nav a:hover,
+    .topbar nav a.active { color: #fff; background: rgba(255,255,255,.11); }
+    .print-btn {
+      flex: 0 0 auto;
+      padding: 7px 12px;
+      border: 1px solid rgba(255,255,255,.26);
+      border-radius: 9px;
+      color: #fff;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    main { overflow: hidden; }
+    section { scroll-margin-top: 78px; }
+    .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .hero {
+      position: relative;
+      min-height: 740px;
+      display: grid;
+      align-items: center;
+      color: #fff;
+      background:
+        radial-gradient(circle at 78% 34%, rgba(61,147,163,.34), transparent 28%),
+        radial-gradient(circle at 14% 92%, rgba(238,173,82,.17), transparent 31%),
+        var(--navy);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .12;
+      background-image: linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(to bottom, black, transparent 88%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap: 66px;
+      align-items: center;
+      padding: 76px 0 90px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 22px;
+      padding: 7px 11px;
+      color: #d9f2ef;
+      border: 1px solid rgba(184,224,210,.34);
+      background: rgba(184,224,210,.08);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 5px rgba(238,173,82,.14); }
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(44px, 6.4vw, 82px);
+      line-height: 1.07;
+      letter-spacing: -.045em;
+    }
+    h1 em { color: var(--amber); font-style: normal; }
+    .hero-lead {
+      max-width: 720px;
+      margin: 26px 0 0;
+      color: rgba(255,255,255,.74);
+      font-size: clamp(17px, 2vw, 22px);
+      line-height: 1.65;
+    }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .hero-meta span { padding: 7px 11px; color: rgba(255,255,255,.78); background: rgba(255,255,255,.08); font-size: 13px; }
+
+    .signal-card {
+      position: relative;
+      padding: 28px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.075);
+      box-shadow: 0 28px 70px rgba(0,0,0,.24);
+      backdrop-filter: blur(10px);
+    }
+    .signal-card::before {
+      content: "核心假设";
+      position: absolute;
+      top: -15px;
+      left: 22px;
+      padding: 5px 10px;
+      color: var(--navy);
+      background: var(--amber);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .signal-title { margin-bottom: 20px; color: rgba(255,255,255,.66); font-size: 13px; }
+    .layer-chart { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; height: 245px; align-items: end; padding-top: 18px; border-bottom: 1px solid rgba(255,255,255,.24); }
+    .layer-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; }
+    .bar-stack { width: 100%; height: 185px; display: flex; align-items: end; gap: 4px; }
+    .bar { flex: 1; min-width: 8px; transition: transform .25s ease; }
+    .bar:hover { transform: scaleY(1.04); transform-origin: bottom; }
+    .bar.plus { height: var(--p); background: rgba(184,224,210,.56); }
+    .bar.minus { height: var(--m); background: var(--amber); }
+    .layer-label { color: rgba(255,255,255,.52); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .chart-legend { display: flex; gap: 18px; margin-top: 20px; color: rgba(255,255,255,.68); font-size: 12px; }
+    .legend-dot { display: inline-block; width: 9px; height: 9px; margin-right: 6px; }
+    .chart-callout { margin-top: 24px; padding: 14px 16px; border-left: 3px solid var(--orange); color: rgba(255,255,255,.82); background: rgba(0,0,0,.16); font-size: 14px; }
+
+    .section { padding: 102px 0; }
+    .section.alt { background: rgba(255,255,255,.56); border-block: 1px solid rgba(16,36,62,.08); }
+    .section.dark { color: #fff; background: var(--navy); }
+    .section-heading { display: grid; grid-template-columns: 190px 1fr; gap: 34px; margin-bottom: 46px; align-items: start; }
+    .section-index { color: var(--orange); font-size: 13px; font-weight: 820; letter-spacing: .15em; text-transform: uppercase; }
+    h2 { margin: 0; max-width: 870px; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.15; letter-spacing: -.035em; }
+    h3 { margin: 0; font-size: 21px; line-height: 1.35; }
+    .section-intro { max-width: 760px; margin: 16px 0 0; color: var(--muted); font-size: 17px; }
+    .dark .section-intro { color: rgba(255,255,255,.66); }
+
+    .thesis {
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 30px;
+      padding: 42px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .thesis blockquote { margin: 0; font-size: clamp(26px, 3vw, 40px); line-height: 1.45; font-weight: 730; letter-spacing: -.025em; }
+    .thesis blockquote mark { padding: 0 .16em; color: var(--navy); background: linear-gradient(transparent 54%, rgba(238,173,82,.6) 54%); }
+    .thesis-side { display: grid; gap: 12px; }
+    .mini-stat { padding: 18px; border-left: 4px solid var(--cyan); background: #edf5f4; }
+    .mini-stat strong { display: block; color: var(--navy); font-size: 24px; }
+    .mini-stat span { color: var(--muted); font-size: 13px; }
+
+    .question-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 30px; }
+    .question-card { position: relative; min-height: 250px; padding: 25px 24px 24px; background: var(--card); border: 1px solid var(--line); }
+    .question-card::before { content: attr(data-step); display: block; width: 42px; margin-bottom: 28px; padding-bottom: 5px; color: var(--orange); border-bottom: 3px solid var(--orange); font: 800 13px ui-monospace, monospace; }
+    .question-card p { color: var(--muted); }
+    .question-card .answer-type { position: absolute; left: 24px; bottom: 22px; color: var(--blue); font-size: 12px; font-weight: 750; letter-spacing: .05em; }
+
+    .work-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      min-height: 560px;
+      border: 1px solid #c7ccd0;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    .quadrant { position: relative; padding: 32px 34px; border: 1px solid #e0e2e2; }
+    .quadrant small { display: block; margin-bottom: 14px; color: var(--muted); font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .quadrant p { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+    .quadrant a { display: inline-block; margin-top: 14px; color: var(--blue); font-size: 13px; text-underline-offset: 3px; }
+    .quadrant.ours { color: #fff; background: var(--blue); border-color: var(--blue); }
+    .quadrant.ours p, .quadrant.ours small { color: rgba(255,255,255,.72); }
+    .quadrant.ours strong { color: var(--amber); }
+    .axis-x, .axis-y { color: var(--muted); font-size: 12px; font-weight: 760; letter-spacing: .08em; text-transform: uppercase; }
+    .axis-x { display: flex; justify-content: space-between; margin: 12px 8px 0; }
+    .axis-y { display: flex; justify-content: space-between; margin-bottom: 10px; }
+
+    .gap-strip { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; margin-top: 28px; padding: 22px 26px; color: #fff; background: var(--orange); }
+    .gap-strip b { font-size: 13px; letter-spacing: .11em; text-transform: uppercase; }
+    .gap-strip span { font-size: 18px; font-weight: 680; }
+
+    .pair-demo { display: grid; grid-template-columns: 1fr 120px 1fr; gap: 18px; align-items: stretch; }
+    .context-card { padding: 28px; border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); }
+    .context-card header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .context-tag { padding: 4px 9px; font: 800 12px ui-monospace, monospace; }
+    .positive .context-tag { color: #195744; background: #d8eee6; }
+    .negative .context-tag { color: #843c27; background: #f8dfd3; }
+    .fact-list { display: grid; gap: 9px; padding: 0; margin: 0; list-style: none; }
+    .fact-list li { position: relative; padding: 10px 12px 10px 35px; background: #f2f2ee; font-size: 14px; }
+    .fact-list li::before { content: "✓"; position: absolute; left: 13px; color: var(--green); font-weight: 900; }
+    .fact-list li.removed { color: #9a5d4b; background: #faece5; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .fact-list li.removed::before { content: "×"; color: var(--red); }
+    .pair-arrow { display: grid; place-items: center; text-align: center; color: var(--orange); font-weight: 800; }
+    .pair-arrow .arrow-line { width: 100%; height: 2px; position: relative; background: var(--orange); }
+    .pair-arrow .arrow-line::after { content: ""; position: absolute; right: 0; top: -5px; width: 10px; height: 10px; border-top: 2px solid var(--orange); border-right: 2px solid var(--orange); transform: rotate(45deg); }
+    .pair-arrow small { color: var(--muted); font-weight: 650; }
+
+    .pipeline { margin-top: 46px; padding: 30px; color: #fff; background: var(--navy); }
+    .pipeline-row { display: grid; grid-template-columns: 1.08fr 54px 1fr 54px 1.15fr 54px .92fr; align-items: center; }
+    .pipe-node { min-height: 116px; display: grid; place-items: center; padding: 16px; text-align: center; border: 1px solid rgba(255,255,255,.19); background: rgba(255,255,255,.065); }
+    .pipe-node strong { display: block; margin-bottom: 5px; color: var(--amber); }
+    .pipe-arrow { text-align: center; color: var(--amber); font-size: 24px; }
+    .pipeline-note { margin-top: 18px; color: rgba(255,255,255,.6); font-size: 13px; }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .metric-card { min-height: 286px; padding: 26px; color: #fff; background: #183654; border-top: 5px solid var(--amber); }
+    .metric-card:nth-child(2) { border-top-color: var(--cyan); }
+    .metric-card:nth-child(3) { border-top-color: var(--orange); }
+    .metric-no { color: rgba(255,255,255,.38); font: 750 12px ui-monospace, monospace; }
+    .metric-card h3 { margin-top: 18px; }
+    .formula { margin: 22px 0 18px; padding: 13px 15px; color: #fff; background: rgba(0,0,0,.23); font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
+    .metric-card p { color: rgba(255,255,255,.66); font-size: 14px; }
+
+    .pattern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .pattern-card { display: grid; grid-template-columns: 94px 1fr; gap: 22px; min-height: 220px; padding: 26px; background: var(--card); border: 1px solid var(--line); }
+    .pattern-icon { width: 94px; height: 94px; display: grid; place-items: center; color: #fff; background: var(--blue); font-size: 30px; font-weight: 820; }
+    .pattern-card:nth-child(2) .pattern-icon { background: var(--cyan); }
+    .pattern-card:nth-child(3) .pattern-icon { background: var(--green); }
+    .pattern-card:nth-child(4) .pattern-icon { background: var(--orange); }
+    .pattern-card p { color: var(--muted); font-size: 14px; }
+    .pattern-card .method { color: var(--blue); font-size: 12px; font-weight: 760; letter-spacing: .04em; }
+
+    .roadmap { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .roadmap::before { content: ""; position: absolute; left: 9%; right: 9%; top: 28px; height: 2px; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--mint)); }
+    .stage { position: relative; padding-top: 64px; }
+    .stage-dot { position: absolute; top: 16px; left: 18px; width: 24px; height: 24px; border: 6px solid var(--navy); border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
+    .stage:nth-child(2) .stage-dot { background: var(--cyan); }
+    .stage:nth-child(3) .stage-dot { background: var(--mint); }
+    .stage-body { min-height: 340px; padding: 27px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); }
+    .stage-label { color: var(--amber); font: 800 12px ui-monospace, monospace; }
+    .stage:nth-child(2) .stage-label { color: #83d0d7; }
+    .stage:nth-child(3) .stage-label { color: var(--mint); }
+    .stage h3 { margin: 14px 0 14px; }
+    .stage ul { margin: 0; padding-left: 20px; color: rgba(255,255,255,.67); font-size: 14px; }
+    .stage .deliverable { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.13); color: #fff; font-size: 13px; }
+
+    .contribution-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 24px; }
+    .contribution-stack { display: grid; gap: 12px; }
+    .contribution { display: grid; grid-template-columns: 52px 1fr; gap: 16px; padding: 20px; background: var(--card); border: 1px solid var(--line); }
+    .contribution b { color: var(--orange); font: 800 26px ui-monospace, monospace; }
+    .contribution p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+    .falsify { padding: 30px; color: #fff; background: var(--orange); }
+    .falsify h3 { font-size: 25px; }
+    .falsify ul { padding-left: 20px; margin-bottom: 0; }
+    .falsify li { margin: 12px 0; }
+
+    .talk-track { display: grid; grid-template-columns: 150px 1fr; gap: 28px; padding: 34px; color: #fff; background: var(--blue); }
+    .talk-track .time { font: 820 32px ui-monospace, monospace; color: var(--amber); }
+    .talk-track ol { margin: 0; padding-left: 20px; }
+    .talk-track li { margin: 12px 0; padding-left: 8px; }
+
+    .references { display: grid; gap: 8px; margin-top: 28px; }
+    .reference { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: start; padding: 16px 18px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.42); }
+    .reference b { color: var(--orange); font: 800 12px ui-monospace, monospace; }
+    .reference span { color: var(--muted); font-size: 13px; }
+    .reference a { color: var(--blue); font-size: 12px; text-underline-offset: 3px; }
+
+    footer { padding: 72px 20px; text-align: center; color: #fff; background: #091726; }
+    footer strong { display: block; max-width: 950px; margin: 0 auto 18px; font-size: clamp(27px, 3.7vw, 48px); line-height: 1.3; }
+    footer strong em { color: var(--amber); font-style: normal; }
+    footer p { color: rgba(255,255,255,.53); }
+
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .topbar nav { display: none; }
+      .hero-grid, .thesis, .contribution-grid { grid-template-columns: 1fr; }
+      .hero { min-height: auto; }
+      .section-heading { grid-template-columns: 1fr; gap: 10px; }
+      .question-grid, .metric-grid, .roadmap { grid-template-columns: 1fr; }
+      .roadmap::before { display: none; }
+      .pair-demo { grid-template-columns: 1fr; }
+      .pair-arrow { min-height: 84px; }
+      .pair-arrow .arrow-line { width: 2px; height: 50px; }
+      .pair-arrow .arrow-line::after { right: -5px; top: auto; bottom: 0; transform: rotate(135deg); }
+      .pipeline-row { grid-template-columns: 1fr; gap: 10px; }
+      .pipe-arrow { transform: rotate(90deg); }
+      .pattern-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 24px, 1180px); }
+      .topbar { padding-inline: 14px; }
+      .brand { font-size: 13px; }
+      .hero-grid { padding-top: 58px; }
+      .section { padding: 72px 0; }
+      .thesis { padding: 26px; }
+      .work-map { grid-template-columns: 1fr; grid-template-rows: auto; }
+      .axis-x, .axis-y { display: none; }
+      .pattern-card { grid-template-columns: 1fr; }
+      .talk-track { grid-template-columns: 1fr; }
+      .reference { grid-template-columns: 36px 1fr; }
+      .reference a { grid-column: 2; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .topbar, .progress, .print-btn { display: none !important; }
+      .hero { min-height: 100vh; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .section { break-inside: avoid; padding: 54px 0; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .dark, .pipeline, .metric-card, .talk-track, .falsify, footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <header class="topbar">
+    <div class="brand">LATENT <span>INSUFFICIENCY</span></div>
+    <nav aria-label="页面导航">
+      <a href="#problem">研究问题</a>
+      <a href="#related">相关工作</a>
+      <a href="#method">研究思路</a>
+      <a href="#metrics">诊断指标</a>
+      <a href="#roadmap">研究路线</a>
+      <a href="#contribution">贡献与风险</a>
+    </nav>
+    <button class="print-btn" type="button" onclick="window.print()">打印 / 导出 PDF</button>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="title">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Research Idea · RAG × Mechanistic Diagnosis</div>
+          <h1 id="title">模型知道信息<em>不够</em>，却仍然回答？</h1>
+          <p class="hero-lead">研究信息充分性判断在模型内部层的形成、衰减与最终决策错位：从 pseudo-sufficient matched pairs 出发，定位潜在的 late-layer insufficient shift。</p>
+          <div class="hero-meta">
+            <span>研究对象：Retrieval Sufficiency</span>
+            <span>核心现象：Intermediate → Final Shift</span>
+            <span>首个实验：One-pair Logit Lens</span>
+          </div>
+        </div>
+
+        <div class="signal-card" role="img" aria-label="示意图：不完整上下文的 Insufficient 概率在中间层上升，在最终层下降；完整上下文保持较低">
+          <div class="signal-title">逐层 P(Insufficient) · 示意</div>
+          <div class="layer-chart">
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:18%"></i><i class="bar minus" style="--m:36%"></i></div><span class="layer-label">L20</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:14%"></i><i class="bar minus" style="--m:51%"></i></div><span class="layer-label">L22</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:11%"></i><i class="bar minus" style="--m:72%"></i></div><span class="layer-label">L24</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:9%"></i><i class="bar minus" style="--m:91%"></i></div><span class="layer-label">L26</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:8%"></i><i class="bar minus" style="--m:83%"></i></div><span class="layer-label">L28</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:8%"></i><i class="bar minus" style="--m:64%"></i></div><span class="layer-label">L30</span></div>
+            <div class="layer-col"><div class="bar-stack"><i class="bar plus" style="--p:7%"></i><i class="bar minus" style="--m:39%"></i></div><span class="layer-label">L32</span></div>
+          </div>
+          <div class="chart-legend"><span><i class="legend-dot" style="background:rgba(184,224,210,.7)"></i>C+ 完整</span><span><i class="legend-dot" style="background:#eead52"></i>C− 伪充分</span></div>
+          <div class="chart-callout">如果模型在 L26 已强烈检测到缺口，却在 L32 转向 “Sufficient”，那么错误不一定源于“不知道”，而可能源于“没有保留”。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="problem">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">01 · Research Problem</div>
+          <div>
+            <h2>把“RAG 回答错了”拆成一个更尖锐的问题</h2>
+            <p class="section-intro">检索相关不等于信息充分。真正值得追问的是：当关键事实缺失时，模型内部是否已经形成 missingness signal，以及这个信号为何没有约束最终回答行为。</p>
+          </div>
+        </div>
+
+        <div class="thesis reveal">
+          <blockquote>LLM 是否在中间层已经识别出“当前证据不足”，但这一判断在最终层受到生成偏好或对齐偏好的扰动，最终<mark>明明信息不够却选择回答</mark>？</blockquote>
+          <div class="thesis-side">
+            <div class="mini-stat"><strong>Relevant ≠ Sufficient</strong><span>高相关、高信息量，也可能缺决定性条件</span></div>
+            <div class="mini-stat"><strong>Knowing ≠ Acting</strong><span>内部可解码，不代表最终策略会使用</span></div>
+            <div class="mini-stat"><strong>Deeper ≠ Better</strong><span>最终层未必保留最可靠的任务信号</span></div>
+          </div>
+        </div>
+
+        <div class="question-grid">
+          <article class="question-card reveal" data-step="RQ-1">
+            <h3>存在性</h3>
+            <p>对于只删除一个关键事实的 C−，是否存在某个中间层比最终层更强烈、更正确地表达 Insufficient？</p>
+            <div class="answer-type">DESCRIPTIVE · 层间轨迹</div>
+          </article>
+          <article class="question-card reveal" data-step="RQ-2">
+            <h3>机制性</h3>
+            <p>若出现下降，它是分类概率 flip、C+/C− margin collapse，还是表征仍在但最终生成策略覆盖了它？</p>
+            <div class="answer-type">DIAGNOSTIC · 区分机制</div>
+          </article>
+          <article class="question-card reveal" data-step="RQ-3">
+            <h3>可干预性</h3>
+            <p>保存、回注或蒸馏可靠中间层的 missingness signal，能否让最终层更稳定地拒答或继续检索？</p>
+            <div class="answer-type">CAUSAL · 行为改变</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="related">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">02 · Related Work</div>
+          <div>
+            <h2>已有工作覆盖了“两条轴”，但没有交汇在这个问题上</h2>
+            <p class="section-intro">一类工作研究 RAG 的证据充分性和缺失信息；另一类工作研究中间层预测与晚层扰动。本研究的切口是两者的交叉：information sufficiency 的内部层动态。</p>
+          </div>
+        </div>
+
+        <div class="axis-y"><span>内部状态 / Layer-wise</span><span>输出行为 / Output-level</span></div>
+        <div class="work-map reveal">
+          <article class="quadrant">
+            <small>Internal · Diagnosis</small>
+            <h3>Logit Lens / Tuned Lens</h3>
+            <p>把每层 hidden state 解码成词表分布，观察预测如何逐层形成；Tuned Lens 进一步校正层间表示错位。</p>
+            <a href="https://arxiv.org/abs/2303.08112" target="_blank" rel="noreferrer">Belrose et al., 2023 ↗</a>
+          </article>
+          <article class="quadrant">
+            <small>Output · Diagnosis</small>
+            <h3>Sufficient Context</h3>
+            <p>区分“上下文本身不充分”和“模型未正确使用上下文”，并发现模型在不充分上下文上往往错误回答而非拒答。</p>
+            <a href="https://arxiv.org/abs/2411.06037" target="_blank" rel="noreferrer">Joren et al., 2024 ↗</a>
+          </article>
+          <article class="quadrant">
+            <small>Internal · Intervention</small>
+            <h3>DoLa / Confident Decoding</h3>
+            <p>DoLa 对比不同层 logits；Confident Decoding 进一步提出 Guess–Refine–Perturb，并在熵谷选择更可靠的近末层。</p>
+            <a href="https://arxiv.org/abs/2309.03883" target="_blank" rel="noreferrer">DoLa, 2023 ↗</a>&nbsp;&nbsp;
+            <a href="https://arxiv.org/abs/2606.21906" target="_blank" rel="noreferrer">Qwen, 2026 ↗</a>
+          </article>
+          <article class="quadrant ours">
+            <small>Our Space · Internal × Sufficiency</small>
+            <h3><strong>Latent Insufficiency Shift</strong></h3>
+            <p>不只问“模型是否知道缺什么”，而是追踪这个判断在何层形成、是否在晚层衰减，以及它为何没有进入最终 decision policy。</p>
+          </article>
+        </div>
+        <div class="axis-x"><span>诊断 / Understand</span><span>干预 / Intervene</span></div>
+
+        <div class="gap-strip reveal">
+          <b>Research Gap</b>
+          <span>现有 sufficiency 工作大多观察最终输出；现有 layer decoding 工作大多面向通用 token、事实性或推理。尚缺少对“证据是否充分”这一控制信号的层间形成—遗失—决策链条研究。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="method">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">03 · Research Design</div>
+          <div>
+            <h2>先发现偏移以什么形式存在，再决定怎么训练</h2>
+            <p class="section-intro">不预设一定存在 hard flip。第一阶段只构造最干净的 matched pair，并用最轻的诊断工具观察层间轨迹。</p>
+          </div>
+        </div>
+
+        <div class="pair-demo reveal">
+          <article class="context-card positive">
+            <header><h3>C+ · Complete Context</h3><span class="context-tag">SUFFICIENT</span></header>
+            <ul class="fact-list">
+              <li>问题相关事实 A</li>
+              <li>问题相关事实 B</li>
+              <li>关键条件 / 决定性证据 C</li>
+              <li>答案边界或例外 D</li>
+            </ul>
+          </article>
+          <div class="pair-arrow"><div><small>只删除一条</small><div class="arrow-line"></div><span>Critical Fact</span></div></div>
+          <article class="context-card negative">
+            <header><h3>C− · Pseudo-Sufficient</h3><span class="context-tag">INSUFFICIENT</span></header>
+            <ul class="fact-list">
+              <li>问题相关事实 A</li>
+              <li>问题相关事实 B</li>
+              <li class="removed">关键条件 / 决定性证据 C</li>
+              <li>答案边界或例外 D</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="pipeline reveal">
+          <div class="pipeline-row">
+            <div class="pipe-node"><div><strong>① Matched Input</strong>同一问题 + C+ / C−</div></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node"><div><strong>② Hidden States</strong>h₁, h₂, …, hᴸ</div></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node"><div><strong>③ Raw Logit Lens</strong>Final Norm + LM Head</div></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-node"><div><strong>④ Layer Curve</strong>Pₗ(Insufficient)</div></div>
+          </div>
+          <div class="pipeline-note">单样本阶段不训练 probe：对完整标签 “Sufficient / Insufficient” 做逐层 teacher-forced likelihood，避免用一条数据拟合分类器。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark" id="metrics">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">04 · Key Metrics</div>
+          <div>
+            <h2>一个现象，三种强度不同的证据</h2>
+            <p class="section-intro">从最直观的标签翻转，到更普遍的概率下降与区分 margin 塌缩，避免“没看到 flip 就否定一切”。</p>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card reveal">
+            <div class="metric-no">METRIC 01 · STRONG</div>
+            <h3>Sufficiency Flip</h3>
+            <div class="formula">Pₗ*(I | C−) ≥ .5<br/>Pᴸ(I | C−) &lt; .5</div>
+            <p>中间层判断 Insufficient，最终层却转向 Sufficient。最接近“信号被覆盖”的直接现象。</p>
+          </article>
+          <article class="metric-card reveal">
+            <div class="metric-no">METRIC 02 · CONTINUOUS</div>
+            <h3>Late Insufficient Drop</h3>
+            <div class="formula">D_late = maxₗ Pₗ(I | C−)<br/>− Pᴸ(I | C−)</div>
+            <p>即使没有越过 0.5 决策边界，也能捕捉不足信号在晚层显著衰减。</p>
+          </article>
+          <article class="metric-card reveal">
+            <div class="metric-no">METRIC 03 · MATCHED</div>
+            <h3>Pair Margin Collapse</h3>
+            <div class="formula">Mₗ = Pₗ(I | C−) − Pₗ(I | C+)<br/>D_margin = maxₗ Mₗ − Mᴸ</div>
+            <p>衡量模型区分“真充分”和“伪充分”的能力是否在最终层变弱。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="patterns">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">05 · Possible Findings</div>
+          <div>
+            <h2>无论结果是哪一种，都对应不同的研究路径</h2>
+            <p class="section-intro">关键不是强行证明预设，而是用分层诊断把“失败发生在哪里”拆清楚。</p>
+          </div>
+        </div>
+
+        <div class="pattern-grid">
+          <article class="pattern-card reveal">
+            <div class="pattern-icon">A</div>
+            <div><h3>Hard Flip</h3><p>C− 在中间层为 Insufficient，最终层翻成 Sufficient。</p><div class="method">→ SIGNAL PRESERVATION / REVERSE DISTILLATION</div></div>
+          </article>
+          <article class="pattern-card reveal">
+            <div class="pattern-icon">B</div>
+            <div><h3>Margin Collapse</h3><p>标签未翻转，但 C− 与 C+ 的区分间隔在晚层持续缩小。</p><div class="method">→ PAIRWISE CONTRASTIVE TRAINING</div></div>
+          </article>
+          <article class="pattern-card reveal">
+            <div class="pattern-icon">C</div>
+            <div><h3>Representation Drift</h3><p>标量概率变化不明显，但 hidden representation 向 C+ 靠近或发生旋转。</p><div class="method">→ TUNED PROBE / GEOMETRIC ANALYSIS</div></div>
+          </article>
+          <article class="pattern-card reveal">
+            <div class="pattern-icon">D</div>
+            <div><h3>Representation–Decision Misalignment</h3><p>最终层仍可解码出 Insufficient，但真实生成行为坚持回答。</p><div class="method">→ CAUSAL PATCHING / POLICY ALIGNMENT</div></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark" id="roadmap">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">06 · Roadmap</div>
+          <div>
+            <h2>从一条数据，到现象成立，再到方法贡献</h2>
+            <p class="section-intro">先用低成本实验确认值得做，再逐级增加数据、控制变量与因果强度。</p>
+          </div>
+        </div>
+
+        <div class="roadmap">
+          <article class="stage reveal">
+            <i class="stage-dot"></i>
+            <div class="stage-body">
+              <div class="stage-label">STAGE 0 · 1 DAY</div>
+              <h3>One-pair Smoke Test</h3>
+              <ul><li>构造 1 个高质量 C+/C−</li><li>跑最后 K 层 raw logit lens</li><li>检查 flip / drop / margin</li><li>检查 prompt 与标签敏感性</li></ul>
+              <div class="deliverable"><b>产出：</b>一张逐层曲线 + 一个可复现实验脚本</div>
+            </div>
+          </article>
+          <article class="stage reveal">
+            <i class="stage-dot"></i>
+            <div class="stage-body">
+              <div class="stage-label">STAGE 1 · DISCOVERY</div>
+              <h3>Population-level Validation</h3>
+              <ul><li>扩展多个领域 matched pairs</li><li>区分 easy / pseudo-sufficient hard cases</li><li>跨模型、跨 prompt、跨标签验证</li><li>effect size + bootstrap CI</li></ul>
+              <div class="deliverable"><b>产出：</b>现象频率、层位分布、影响因素与统计稳定性</div>
+            </div>
+          </article>
+          <article class="stage reveal">
+            <i class="stage-dot"></i>
+            <div class="stage-body">
+              <div class="stage-label">STAGE 2 · CAUSAL + METHOD</div>
+              <h3>Intervention & Training</h3>
+              <ul><li>tuned lens / independent probe</li><li>activation patching 与 steering</li><li>选择性反向自蒸馏</li><li>保留 missingness sensitivity</li></ul>
+              <div class="deliverable"><b>产出：</b>从相关性现象升级为可干预机制与方法收益</div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contribution">
+      <div class="wrap">
+        <div class="section-heading reveal">
+          <div class="section-index">07 · Contribution & Risk</div>
+          <div>
+            <h2>预期贡献必须和“什么会推翻我们”一起讲</h2>
+            <p class="section-intro">把 idea 说得可信，不是只展示最漂亮的预期曲线，而是明确它的可证伪性与最低成立条件。</p>
+          </div>
+        </div>
+
+        <div class="contribution-grid">
+          <div class="contribution-stack">
+            <article class="contribution reveal"><b>01</b><div><h3>新问题定义</h3><p>把 retrieval sufficiency 从输出层分类问题推进到内部信号形成与决策传递问题。</p></div></article>
+            <article class="contribution reveal"><b>02</b><div><h3>新诊断范式</h3><p>用 pseudo-sufficient matched pairs 隔离“相关性”与“完整性”，追踪 layer-wise dynamics。</p></div></article>
+            <article class="contribution reveal"><b>03</b><div><h3>潜在新方法</h3><p>只在中间层明显更可靠时，选择性地保存或蒸馏 missingness sensitivity，而非固定层 early exit。</p></div></article>
+          </div>
+          <aside class="falsify reveal">
+            <h3>什么结果会削弱这个 Idea？</h3>
+            <ul>
+              <li>层间趋势对 prompt 或标签措辞极度敏感。</li>
+              <li>raw logit lens 的下降在 tuned lens / probe 下完全消失。</li>
+              <li>大规模 matched pairs 中，最终层通常比中间层更可靠。</li>
+              <li>回注候选层 activation 不能改变最终 sufficiency 决策。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="talk-track reveal" style="margin-top:32px">
+          <div class="time">3 MIN</div>
+          <ol>
+            <li><b>问题：</b>RAG 检索到了大量相关内容，但只缺一个关键事实时，模型为什么仍会回答？</li>
+            <li><b>假设：</b>模型可能在中间层已经知道“不够”，但信号在最终层被削弱或没有进入生成策略。</li>
+            <li><b>验证：</b>构造 C+/C− matched pair，逐层计算 P(Insufficient)，观察 flip、drop 和 margin collapse。</li>
+            <li><b>价值：</b>若成立，可从“外挂一个 sufficiency judge”转向“让最终层保留模型内部已有的 missingness knowledge”。</li>
+          </ol>
+        </div>
+
+        <div class="references reveal">
+          <div class="reference"><b>[1]</b><span>Belrose et al. Eliciting Latent Predictions from Transformers with the Tuned Lens. 2023.</span><a href="https://arxiv.org/abs/2303.08112" target="_blank" rel="noreferrer">arXiv ↗</a></div>
+          <div class="reference"><b>[2]</b><span>Chuang et al. DoLa: Decoding by Contrasting Layers Improves Factuality in Large Language Models. 2023.</span><a href="https://arxiv.org/abs/2309.03883" target="_blank" rel="noreferrer">arXiv ↗</a></div>
+          <div class="reference"><b>[3]</b><span>Wang et al. LLMs Know What They Need: Missing Information Guided RAG (MIGRES). 2024.</span><a href="https://arxiv.org/abs/2404.14043" target="_blank" rel="noreferrer">arXiv ↗</a></div>
+          <div class="reference"><b>[4]</b><span>Joren et al. Sufficient Context: A New Lens on Retrieval Augmented Generation Systems. 2024.</span><a href="https://arxiv.org/abs/2411.06037" target="_blank" rel="noreferrer">arXiv ↗</a></div>
+          <div class="reference"><b>[5]</b><span>Zhang et al. Deeper is Not Always Better: Mitigating the Alignment Tax via Confident Layer Decoding. 2026.</span><a href="https://arxiv.org/abs/2606.21906" target="_blank" rel="noreferrer">arXiv ↗</a></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>最终要回答的不是“哪一层分类最好”，而是：<br/>如何让模型内部已有的 <em>missingness knowledge</em> 真正约束最终行为？</strong>
+    <p>Latent Insufficiency Shift · Research Idea Brief</p>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress');
+    const navLinks = [...document.querySelectorAll('.topbar nav a')];
+    const sections = [...document.querySelectorAll('main section[id]')];
+    const reveals = [...document.querySelectorAll('.reveal')];
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+    }
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach((el) => revealObserver.observe(el));
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+      });
+    }, { rootMargin: '-25% 0px -65% 0px' });
+    sections.forEach((section) => sectionObserver.observe(section));
+
+    addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  </script>
+</body>
+</html>

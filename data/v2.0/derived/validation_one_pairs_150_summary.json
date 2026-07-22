@@ -1,0 +1,28 @@
+{
+  "split_prompts": 1253,
+  "valid_annotation_groups": 1232,
+  "excluded_caveat_ids": 106,
+  "rejected_label_disagreement": 1,
+  "rejected_missing_text": 0,
+  "rejected_no_abstract_offset": 622,
+  "rejected_unmapped_evidence": 13,
+  "rejected_short_context": 0,
+  "rejected_other_gold_evidence_in_window": 23,
+  "candidate_pool": 573,
+  "selected": 150,
+  "selected_unique_articles": 150,
+  "selected_label_counts": {
+    "-1": 50,
+    "0": 50,
+    "1": 50
+  },
+  "selected_explicit_result_cue": 150,
+  "selected_label_consistent_cue": 150,
+  "selected_zero_cminus_result_cues": 20,
+  "selected_two_or_more_valid_annotators": 150,
+  "selected_evidence_supported_by_two_or_more_annotators": 86,
+  "quality_score_min": 20.0,
+  "quality_score_mean": 24.213876,
+  "quality_score_max": 29.0,
+  "construction": "C+ is a local abstract window; C- deletes one verified evidence sentence. One prompt per article and 50 examples per effect label."
+}

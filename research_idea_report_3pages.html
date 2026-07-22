@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="结合 Qwen2.5-7B/14B one-pair 结果的三页研究 idea 汇报" />
+  <title>Late-layer Sufficiency Discriminability Collapse｜三页研究汇报</title>
+  <style>
+    :root {
+      --navy:#10243e;
+      --blue:#315c9b;
+      --cyan:#3d93a3;
+      --mint:#b8e0d2;
+      --amber:#eead52;
+      --orange:#d96d3b;
+      --paper:#f7f5ef;
+      --card:#fffdf8;
+      --ink:#17202a;
+      --muted:#64707d;
+      --line:#d9d8d1;
+    }
+
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      color:var(--ink);
+      background:#dfe3e6;
+      font-family:Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height:1.55;
+    }
+    a { color:inherit; }
+
+    .toolbar {
+      position:fixed;
+      top:16px;
+      right:18px;
+      z-index:20;
+      display:flex;
+      gap:8px;
+    }
+    .toolbar a, .toolbar button {
+      min-width:40px;
+      height:40px;
+      display:grid;
+      place-items:center;
+      padding:0 12px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.25);
+      border-radius:8px;
+      background:rgba(16,36,62,.9);
+      text-decoration:none;
+      cursor:pointer;
+      font:700 12px inherit;
+      backdrop-filter:blur(10px);
+    }
+
+    .deck { width:min(1440px, 100%); margin:0 auto; padding:24px; }
+    .page {
+      position:relative;
+      min-height:min(900px, calc(100vh - 48px));
+      aspect-ratio:16 / 9;
+      margin:0 auto 26px;
+      padding:clamp(38px, 4.7vw, 72px);
+      overflow:hidden;
+      background:var(--paper);
+      box-shadow:0 24px 70px rgba(16,36,62,.18);
+    }
+    .page::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      opacity:.035;
+      background-image:linear-gradient(var(--navy) 1px, transparent 1px), linear-gradient(90deg,var(--navy) 1px, transparent 1px);
+      background-size:30px 30px;
+      pointer-events:none;
+    }
+    .page.dark { color:#fff; background:var(--navy); }
+    .page.dark::before { opacity:.07; background-image:linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg,#fff 1px, transparent 1px); }
+
+    .page-no {
+      position:absolute;
+      top:30px;
+      right:38px;
+      color:var(--orange);
+      font:800 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing:.12em;
+    }
+    .dark .page-no { color:var(--amber); }
+    .eyebrow { color:var(--orange); font-size:13px; font-weight:820; letter-spacing:.14em; text-transform:uppercase; }
+    .dark .eyebrow { color:var(--amber); }
+    h1, h2, h3, p { margin-top:0; }
+    h1 { max-width:1000px; margin:12px 0 18px; font-size:clamp(40px,5vw,72px); line-height:1.08; letter-spacing:-.045em; }
+    h1 em { color:var(--amber); font-style:normal; }
+    h2 { margin:10px 0 16px; font-size:clamp(34px,4vw,58px); line-height:1.12; letter-spacing:-.04em; }
+    h3 { margin-bottom:8px; font-size:19px; line-height:1.3; }
+    .lead { max-width:960px; color:var(--muted); font-size:18px; }
+    .dark .lead { color:rgba(255,255,255,.68); }
+    .strong { font-weight:760; }
+
+    .page1-grid { display:grid; grid-template-columns:.86fr 1.14fr; gap:34px; margin-top:30px; }
+    .rq-card { height:100%; padding:28px 30px; color:#fff; background:var(--blue); }
+    .rq-card small { color:var(--amber); font-weight:820; letter-spacing:.1em; }
+    .rq-card blockquote { margin:22px 0 26px; font-size:clamp(22px,2.2vw,34px); line-height:1.45; font-weight:720; }
+    .rq-card .reframe { padding:16px 18px; color:#d9f2ef; border-left:4px solid var(--mint); background:rgba(0,0,0,.17); font-size:14px; }
+
+    .results { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .result-card { position:relative; min-width:0; padding:16px; border:1px solid var(--line); background:#fff; box-shadow:0 12px 34px rgba(16,36,62,.09); }
+    .result-card header { display:flex; align-items:end; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .result-card header b { color:var(--navy); font-size:17px; }
+    .result-card header span { color:var(--muted); font:700 11px ui-monospace,monospace; }
+    .plot { width:100%; aspect-ratio:16 / 9; object-fit:contain; border:1px solid #ecebe5; background:#fff; }
+    .result-number { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; margin-top:12px; }
+    .result-number div { padding:9px 10px; background:#f0f3f4; }
+    .result-number small { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; }
+    .result-number strong { color:var(--blue); font-size:19px; }
+    .result-number i { color:var(--orange); font-style:normal; font-size:22px; }
+    .collapse { margin:10px 0 0; color:var(--orange); font-size:12px; font-weight:780; }
+
+    .finding {
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:16px;
+      align-items:center;
+      margin-top:18px;
+      padding:15px 20px;
+      border:1px solid #e6c99d;
+      background:#fff3df;
+    }
+    .finding b { color:var(--orange); font-size:12px; letter-spacing:.09em; text-transform:uppercase; }
+    .finding span { font-size:15px; }
+    .finding mark { padding:4px 8px; color:#fff; background:var(--orange); font-size:12px; font-weight:760; }
+
+    .work-layout { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:34px; }
+    .work-card { position:relative; min-height:330px; padding:26px; color:var(--ink); background:var(--card); border-top:5px solid var(--amber); }
+    .work-card:nth-child(2) { border-top-color:var(--cyan); }
+    .work-card:nth-child(3) { color:#fff; background:var(--blue); border-top-color:var(--mint); }
+    .work-card small { color:var(--orange); font-weight:820; letter-spacing:.09em; }
+    .work-card:nth-child(2) small { color:var(--cyan); }
+    .work-card:nth-child(3) small { color:var(--amber); }
+    .work-card h3 { margin-top:18px; font-size:23px; }
+    .work-card ul { padding-left:18px; color:var(--muted); font-size:14px; }
+    .work-card:nth-child(3) ul { color:rgba(255,255,255,.72); }
+    .work-card li { margin:9px 0; }
+    .paper-links { position:absolute; left:26px; right:26px; bottom:24px; display:flex; flex-wrap:wrap; gap:7px; }
+    .paper-links a { padding:5px 8px; color:var(--blue); background:#e9eef5; text-decoration:none; font-size:11px; font-weight:700; }
+    .work-card:nth-child(3) .paper-links a { color:#fff; background:rgba(255,255,255,.13); }
+
+    .gap-line { display:grid; grid-template-columns:auto 1fr; gap:18px; align-items:center; margin-top:24px; padding:19px 22px; border-left:6px solid var(--amber); background:rgba(255,255,255,.08); }
+    .gap-line b { color:var(--amber); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+    .gap-line span { color:rgba(255,255,255,.88); font-size:17px; font-weight:680; }
+
+    .method-grid { display:grid; grid-template-columns:1.12fr .88fr; gap:28px; margin-top:28px; }
+    .flow { padding:25px; color:#fff; background:var(--navy); }
+    .flow-step { display:grid; grid-template-columns:45px 1fr; gap:14px; align-items:start; padding:13px 0; border-bottom:1px solid rgba(255,255,255,.13); }
+    .flow-step:last-child { border-bottom:0; }
+    .flow-step b { width:38px; height:38px; display:grid; place-items:center; color:var(--navy); border-radius:50%; background:var(--amber); font:800 13px ui-monospace,monospace; }
+    .flow-step h3 { margin:0 0 3px; font-size:18px; }
+    .flow-step p { margin:0; color:rgba(255,255,255,.65); font-size:13px; }
+    .metrics { display:grid; gap:12px; }
+    .metric { padding:18px 20px; border:1px solid var(--line); background:#fff; }
+    .metric header { display:flex; justify-content:space-between; gap:10px; }
+    .metric code { color:var(--blue); font-size:12px; }
+    .metric p { margin:8px 0 0; color:var(--muted); font-size:13px; }
+    .metric.current { border-color:#e4b262; background:#fff4e2; }
+    .metric.current header::after { content:"两次结果均出现"; padding:3px 7px; color:#fff; background:var(--orange); font-size:10px; font-weight:760; }
+
+    .hypotheses { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px; }
+    .hypothesis { padding:16px 18px; border-top:4px solid var(--cyan); background:#edf3f4; }
+    .hypothesis:nth-child(2) { border-top-color:var(--orange); }
+    .hypothesis:nth-child(3) { border-top-color:var(--blue); }
+    .hypothesis b { color:var(--navy); font-size:13px; }
+    .hypothesis p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+
+    .footnote { position:absolute; left:clamp(38px,4.7vw,72px); right:clamp(38px,4.7vw,72px); bottom:25px; display:flex; justify-content:space-between; gap:20px; color:var(--muted); font-size:11px; }
+    .dark .footnote { color:rgba(255,255,255,.45); }
+    .footnote b { color:var(--orange); }
+
+    @media (max-width:950px) {
+      .page { min-height:auto; aspect-ratio:auto; }
+      .page1-grid, .method-grid { grid-template-columns:1fr; }
+      .work-layout { grid-template-columns:1fr; }
+      .work-card { min-height:260px; }
+      .footnote { position:static; margin-top:24px; }
+    }
+    @media (max-width:620px) {
+      .deck { padding:0; }
+      .page { margin-bottom:8px; padding:48px 22px; }
+      .results, .hypotheses { grid-template-columns:1fr; }
+      .toolbar { top:auto; bottom:12px; }
+      .finding { grid-template-columns:1fr; }
+    }
+
+    @page { size:landscape; margin:0; }
+    @media print {
+      body { background:#fff; }
+      .toolbar { display:none; }
+      .deck { width:auto; padding:0; }
+      .page {
+        width:100vw;
+        height:100vh;
+        min-height:0;
+        aspect-ratio:auto;
+        margin:0;
+        box-shadow:none;
+        break-after:page;
+        page-break-after:always;
+        print-color-adjust:exact;
+        -webkit-print-color-adjust:exact;
+      }
+      .page:last-child { break-after:auto; page-break-after:auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar" aria-label="页面工具">
+    <a href="#p1" title="第 1 页">1</a>
+    <a href="#p2" title="第 2 页">2</a>
+    <a href="#p3" title="第 3 页">3</a>
+    <button type="button" onclick="window.print()">导出 PDF</button>
+  </div>
+
+  <main class="deck">
+    <section class="page" id="p1" aria-labelledby="title-1">
+      <div class="page-no">01 / 03</div>
+      <div class="eyebrow">Research Problem · Updated by Two One-pair Runs</div>
+      <h1 id="title-1">充分性信号在中间层出现，却在最终层<em>失去区分力</em></h1>
+      <p class="lead">两次结果没有支持“C− 的 Insufficient 信号在最终层消失”，而是共同指向更准确的现象：模型在中间层能区分完整上下文 C+ 与伪充分上下文 C−，但这种区分在最终层几乎塌缩。</p>
+
+      <div class="page1-grid">
+        <article class="rq-card">
+          <small>REFINED RESEARCH QUESTION</small>
+          <blockquote>LLM 的中间层是否已经形成对 evidence sufficiency 的相对判断，而晚层计算使 C+ / C− 的 <em>discriminability</em> 衰减，导致最终决策无法稳定利用信息完整性差异？</blockquote>
+          <div class="reframe"><b>研究重心调整：</b>从单向的 “Insufficient → Sufficient Flip” 扩展为更一般的 <b>Late-layer Sufficiency Discriminability Collapse</b>。</div>
+        </article>
+
+        <div>
+          <div class="results">
+            <article class="result-card">
+              <header><b>Qwen2.5-7B</b><span>last 12 layers</span></header>
+              <img class="plot" src="output/qwen_one_pair/1d2132589173b5171ac5b5ae0e35afb8.jpg" alt="Qwen2.5-7B 的 C+ 与 C- 逐层 P(Insufficient) 曲线" />
+              <div class="result-number"><div><small>峰值 margin</small><strong>.812 @ L26</strong></div><i>→</i><div><small>最终 margin</small><strong>.024 @ L28</strong></div></div>
+              <p class="collapse">区分 margin 缩小约 97%</p>
+            </article>
+            <article class="result-card">
+              <header><b>Qwen2.5-14B</b><span>last 12 layers</span></header>
+              <img class="plot" src="output/qwen_one_pair_14B/f44f20ce8d7c15ad5849cad44810c748.jpg" alt="Qwen2.5-14B 的 C+ 与 C- 逐层 P(Insufficient) 曲线" />
+              <div class="result-number"><div><small>峰值 margin</small><strong>.440 @ L40</strong></div><i>→</i><div><small>最终 margin</small><strong>≈ 0 @ L48</strong></div></div>
+              <p class="collapse">区分 margin 几乎完全消失</p>
+            </article>
+          </div>
+          <div class="finding">
+            <b>共同发现</b>
+            <span>最终层对 C+、C− 都强烈偏向 “Insufficient”，因此当前证据更像 <strong>区分能力塌缩</strong>，而非 C− 的 hard flip。</span>
+            <mark>Cross-scale clue</mark>
+          </div>
+        </div>
+      </div>
+
+      <div class="footnote"><span><b>边界：</b>仅 1 个 matched pair；raw logit lens 的最终层饱和也可能来自标签措辞、prompt 或 lens mismatch。</span><span>Evidence ≠ conclusion</span></div>
+    </section>
+
+    <section class="page dark" id="p2" aria-labelledby="title-2">
+      <div class="page-no">02 / 03</div>
+      <div class="eyebrow">Related Work · Positioning</div>
+      <h2 id="title-2">两条研究线已经存在，缺的是它们的交叉</h2>
+      <p class="lead">相关工作要回答的不是“谁和我们最像”，而是：现有方法分别解决了充分性判断和层间解码，但尚未解释 sufficiency discriminability 在模型内部如何形成与衰减。</p>
+
+      <div class="work-layout">
+        <article class="work-card">
+          <small>LINE A · RAG SUFFICIENCY</small>
+          <h3>模型缺什么、证据够不够？</h3>
+          <ul>
+            <li><b>MIGRES：</b>显式识别 missing information，并据此生成下一轮检索查询。</li>
+            <li><b>Sufficient Context：</b>区分“上下文不充分”和“模型没有正确使用上下文”。</li>
+            <li><b>局限：</b>主要在输出或系统控制层面判断，较少追踪内部层动态。</li>
+          </ul>
+          <div class="paper-links"><a href="https://arxiv.org/abs/2404.14043">MIGRES ↗</a><a href="https://arxiv.org/abs/2411.06037">Sufficient Context ↗</a></div>
+        </article>
+
+        <article class="work-card">
+          <small>LINE B · LAYER-WISE DECODING</small>
+          <h3>最终层未必总是最可靠</h3>
+          <ul>
+            <li><b>Logit / Tuned Lens：</b>把各层 hidden state 解码为词表分布，观察预测轨迹。</li>
+            <li><b>DoLa / Confident Decoding：</b>利用不同层 logits 或近末层熵谷改善生成。</li>
+            <li><b>局限：</b>主要面向通用 token、事实性和推理，不专门研究 evidence sufficiency。</li>
+          </ul>
+          <div class="paper-links"><a href="https://arxiv.org/abs/2303.08112">Tuned Lens ↗</a><a href="https://arxiv.org/abs/2309.03883">DoLa ↗</a><a href="https://arxiv.org/abs/2606.21906">Confident Decoding ↗</a></div>
+        </article>
+
+        <article class="work-card">
+          <small>OUR POSITION</small>
+          <h3>内部充分性区分力</h3>
+          <ul>
+            <li>研究对象不是“哪层预测下一个 token 最好”，而是“哪层最能区分 C+ 与 C−”。</li>
+            <li>研究现象不是预设 hard flip，而是 sufficiency margin 的形成、峰值与晚层塌缩。</li>
+            <li>最终目标不是外挂 judge，而是验证内部信号能否因果性地约束最终 decision policy。</li>
+          </ul>
+          <div class="paper-links"><a href="#p3">Matched Pair</a><a href="#p3">Causal Validation</a></div>
+        </article>
+      </div>
+
+      <div class="gap-line">
+        <b>Research Gap</b>
+        <span>现有工作尚未系统回答：对同一问题，只删除一条关键证据后，模型内部对“完整 / 不完整”的区分在何层形成，又为何在最终层减弱。</span>
+      </div>
+
+      <div class="footnote"><span>定位关键词：Retrieval Sufficiency × Layer-wise Dynamics × Decision Alignment</span><span>Diagnosis before intervention</span></div>
+    </section>
+
+    <section class="page" id="p3" aria-labelledby="title-3">
+      <div class="page-no">03 / 03</div>
+      <div class="eyebrow">Research Approach · From Clue to Evidence</div>
+      <h2 id="title-3">先验证“区分力塌缩”是否真实，再讨论如何修复</h2>
+      <p class="lead">当前两次 one-pair 结果只是线索。研究设计需要依次排除 prompt/标签偏置、raw logit lens 失真和单样本偶然性，最后通过干预确认它是否真正影响模型行为。</p>
+
+      <div class="method-grid">
+        <div class="flow">
+          <div class="flow-step"><b>01</b><div><h3>Matched-pair 数据</h3><p>同一问题构造 C+ 与只删除一个 critical fact 的 C−；保证相关性、长度和表面信息量尽量一致。</p></div></div>
+          <div class="flow-step"><b>02</b><div><h3>跨层诊断</h3><p>扩展至多样本、多领域与多模型；同时使用 raw lens、tuned lens 和独立 layer probe。</p></div></div>
+          <div class="flow-step"><b>03</b><div><h3>行为对齐检查</h3><p>比较内部 margin 与模型真实的回答 / 拒答 / 继续检索决策，区分表示问题和策略问题。</p></div></div>
+          <div class="flow-step"><b>04</b><div><h3>因果干预</h3><p>将高 margin 中间层 activation patch 到晚层；若最终决策随之改变，才支持内部信号具有因果作用。</p></div></div>
+          <div class="flow-step"><b>05</b><div><h3>方法设计</h3><p>若现象稳定，再做 selective preservation / reverse self-distillation，只对晚层退化样本施加约束。</p></div></div>
+        </div>
+
+        <div class="metrics">
+          <article class="metric"><header><h3>Hard Flip</h3><code>mid: I → final: S</code></header><p>强证据，但两次 one-pair 均未出现，不应作为唯一假设。</p></article>
+          <article class="metric"><header><h3>Late Insufficient Drop</h3><code>max Pₗ(I|C−) − Pᴸ(I|C−)</code></header><p>追踪 C− 的不足信号是否单独减弱；两次结果均为 0。</p></article>
+          <article class="metric current"><header><h3>Pair Margin Collapse</h3><code>max Mₗ − Mᴸ</code></header><p>Mₗ = Pₗ(I|C−) − Pₗ(I|C+)；当前最主要、且跨 7B/14B 一致的信号。</p></article>
+          <article class="metric"><header><h3>Causal Effect</h3><code>Δ final decision after patching</code></header><p>决定该现象是“可解码相关性”还是模型真正使用的决策变量。</p></article>
+        </div>
+      </div>
+
+      <div class="hypotheses">
+        <article class="hypothesis"><b>H1 · 若只在 raw lens 出现</b><p>优先解释为层间表示未对齐或标签解码伪影。</p></article>
+        <article class="hypothesis"><b>H2 · 若 tuned probe 仍出现</b><p>支持晚层确有 sufficiency representation / discriminability degradation。</p></article>
+        <article class="hypothesis"><b>H3 · 若 patching 改变输出</b><p>支持 missingness signal 对最终决策具有因果作用，可进入训练方法。</p></article>
+      </div>
+
+      <div class="footnote"><span><b>一句话方法主线：</b>C+/C− matched pairs → layer-wise margin → robust probing → causal patching → selective preservation。</span><span>Observe → verify → intervene</span></div>
+    </section>
+  </main>
+</body>
+</html>

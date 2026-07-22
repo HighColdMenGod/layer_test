@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Python caches and environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Generated experiment outputs
+output/
+outputs/
+
+# Editor files
+.idea/
+.vscode/
