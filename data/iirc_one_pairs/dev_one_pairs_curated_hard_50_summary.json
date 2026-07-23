@@ -1,0 +1,12 @@
+{
+  "output": "data/iirc_one_pairs/dev_one_pairs_curated_hard_50.jsonl",
+  "selected": 50,
+  "quality_tiers": {
+    "strict_pass": 33,
+    "repaired": 15,
+    "usable_weak": 2
+  },
+  "unique_main_articles": 43,
+  "all_gold_answers_retained_in_cminus": true,
+  "manual_semantic_review": true
+}

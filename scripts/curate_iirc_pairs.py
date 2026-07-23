@@ -80,12 +80,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("data/IIRC/derived/dev_one_pairs_candidates_89.jsonl"),
+        default=Path("data/iirc_one_pairs/dev_one_pairs_candidates_89.jsonl"),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("data/IIRC/derived/dev_one_pairs_curated_hard_50.jsonl"),
+        default=Path("data/iirc_one_pairs/dev_one_pairs_curated_hard_50.jsonl"),
     )
     return parser.parse_args()
 
